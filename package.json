@@ -1,5 +1,5 @@
 {
-  "name": "grunt-modl-builder",
+  "name": "grunt-yuitest",
   "description": "YUITest runner plugin for grunt.",
   "version": "0.1.0",
   "homepage": "https://github.com/pablo/grunt-yuitest",
