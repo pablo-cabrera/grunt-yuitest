@@ -14,25 +14,33 @@ module.exports = function(grunt) {
     var path = require("path");
     var cwd = process.cwd();
 
+    YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_CASE_BEGIN_EVENT, function (event) {
+        var msg =
+            "================================================================================\n" +
+            "Running test case: " + (event.testCase.name).yellow;
+
+        grunt.log.writeln(msg.bold);
+    });
+
+
+
     YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_PASS_EVENT, function (event) {
         var msg = "[" + "PASS".green + "] " + event.testCase.name + " :: " + event.testName;
-        console.log(msg.bold);
+        grunt.log.writeln(msg.bold);
     });
 
     YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_FAIL_EVENT, function (event) {
         var msg = "[" + "FAIL".red + "] " + event.testCase.name + " :: " + event.testName;
-        console.log(msg.bold);
+        grunt.log.writeln(msg.bold);
 
-        console.log(event.error.toString().red.bold);
+        grunt.log.writeln(event.error.toString().red.bold);
         var stack = event.error.stack;
         if (stack) {
-            console.log(stack.red.bold);
+            grunt.log.writeln(stack.red.bold);
         }
     });
 
     var loadTestFiles = Delayed.delivery(function (d, files) {
-        console.log("loadTestFiles");
-
         var delayedCount = 0;
         var tests = [];
 
@@ -64,18 +72,29 @@ module.exports = function(grunt) {
     var runTests = Delayed.delivery(function (d, tests) {
         var f = function (event) {
             YUITest.TestRunner.unsubscribe(YUITest.TestRunner.COMPLETE_EVENT, f);
-            console.log(event.results);
-            d.deliver(event.results.failed === 0 && event.results.errors === 0);
+
+            var results = event.results;
+            var ok = results.failed === 0 && results.errors === 0;
+
+            var msg =
+                ("================================================================================\n")[ok? "green": "red"] +
+                "Final summary: " +
+                    [
+                        "Passed: " + String(results.passed).green,
+                        "Failed: " + String(results.failed).red,
+                        "Errors: " + String(results.errors).red
+                    ].join(" ") + "\n"+
+                ("================================================================================")[ok? "green": "red"];
+
+            grunt.log.writeln(msg.bold);
+
+            d.deliver(ok);
         };
 
         YUITest.TestRunner.subscribe(YUITest.TestRunner.COMPLETE_EVENT, f);
 
-        tests.forEach(function (t) {
-            console.log("test!: ", t instanceof YUITest.TestCase);
-            YUITest.TestRunner.add(t);
-        });
+        tests.forEach(function (t) { YUITest.TestRunner.add(t); });
 
-        console.log("run!");
         YUITest.TestRunner.run();
     });
 
@@ -84,9 +103,7 @@ module.exports = function(grunt) {
 
         loadTestFiles(this.files).
         then(runTests).
-        then(function (ok) {
-        console.log("done:", ok);
-        done(ok); });
+        then(function (ok) { done(ok); });
     });
 
 };
