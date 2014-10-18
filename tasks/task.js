@@ -17,7 +17,7 @@ module.exports = function(grunt) {
     YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_CASE_BEGIN_EVENT, function (event) {
         var msg =
             "================================================================================\n" +
-            "Running test case: " + (event.testCase.name).yellow;
+            "Running test case: " + event.testCase.name.yellow;
 
         grunt.log.writeln(msg.bold);
     });
@@ -25,13 +25,13 @@ module.exports = function(grunt) {
 
 
     YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_PASS_EVENT, function (event) {
-        var msg = "[" + "PASS".green + "] " + event.testCase.name + " :: " + event.testName;
-        grunt.log.writeln(msg.bold);
+        var msg = ("[" + "PASS".green + "] ").bold + event.testCase.name + " :: " + event.testName;
+        grunt.log.writeln(msg);
     });
 
     YUITest.TestRunner.subscribe(YUITest.TestRunner.TEST_FAIL_EVENT, function (event) {
-        var msg = "[" + "FAIL".red + "] " + event.testCase.name + " :: " + event.testName;
-        grunt.log.writeln(msg.bold);
+        var msg = ("[" + "FAIL".red + "] ").bold + event.testCase.name + " :: " + event.testName;
+        grunt.log.writeln(msg);
 
         grunt.log.writeln(event.error.toString().red.bold);
         var stack = event.error.stack;
@@ -41,6 +41,8 @@ module.exports = function(grunt) {
     });
 
     var loadTestFiles = Delayed.delivery(function (d, files) {
+        console.log(files);
+
         var delayedCount = 0;
         var tests = [];
 
@@ -52,7 +54,11 @@ module.exports = function(grunt) {
 
         files.forEach(function (f) {
             f.src.forEach(function (s) {
-                var e = require(path.join(cwd, s));
+                var f = path.join(cwd, s);
+
+                grunt.log.writeln("Test file: " + f);
+
+                var e = require(f);
                 if (e instanceof Delayed) {
                     delayedCount += 1;
                     e.then(function (t) {
