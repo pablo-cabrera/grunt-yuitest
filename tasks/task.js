@@ -40,42 +40,41 @@ module.exports = function(grunt) {
         }
     });
 
-    var loadTestFiles = Delayed.delivery(function (d, files) {
-        console.log(files);
+    var loadTestFile = Delayed.delivery(function (d, f) {
+        f = path.join(cwd, f);
+        grunt.log.writeln("Test file: " + f);
 
-        var delayedCount = 0;
+        var e = require(f);
+        if (e instanceof Delayed) {
+            e.chain(d);
+        } else {
+            d.deliver(e);
+        }
+    });
+
+    var loadTestFiles = Delayed.delivery(function (d, files) {
         var tests = [];
 
-        var checkFinished = function () {
-            if (delayedCount === 0) {
+        files = files.reduce(function (files, f) {
+            return files.concat(f.src);
+        }, []);
+
+        var next = function () {
+            if (files.length > 0) {
+                loadTestFile(files.shift()).then(function (t) {
+                    tests.push(t);
+                    next();
+                });
+            } else {
                 d.deliver(tests);
             }
         };
 
-        files.forEach(function (f) {
-            f.src.forEach(function (s) {
-                var f = path.join(cwd, s);
-
-                grunt.log.writeln("Test file: " + f);
-
-                var e = require(f);
-                if (e instanceof Delayed) {
-                    delayedCount += 1;
-                    e.then(function (t) {
-                        tests.push(t);
-                        delayedCount -= 1;
-                        checkFinished();
-                    });
-                } else {
-                    tests.push(e);
-                }
-            });
-        });
-
-        checkFinished();
+        next();
     });
 
     var runTests = Delayed.delivery(function (d, tests) {
+
         var f = function (event) {
             YUITest.TestRunner.unsubscribe(YUITest.TestRunner.COMPLETE_EVENT, f);
 
